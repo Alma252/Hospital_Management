@@ -47,12 +47,3 @@ class UserProfileView(APIView):
 
 
 
-
-
-
-
-
-
-
-
-
