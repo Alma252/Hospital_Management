@@ -4,7 +4,7 @@ from rest_framework import status, permissions
 from rest_framework_simplejwt.tokens import RefreshToken
 from .models import User, Doctor, Patient
 from .serializers import RegisterSerializer, UserSerializer, DoctorSerializer, PatientSerializer
-
+from django.db.models import Q
 
 class RegisterView(APIView):
     permission_classes = [permissions.AllowAny]
@@ -39,11 +39,19 @@ class UserProfileView(APIView):
         return Response(data)
 
 
+class DoctorListView(APIView):
+    permission_classes = [permissions.AllowAny]
 
+    def get(self, request):
+        query = request.query_params.get('q', '')
+        doctors = Doctor.objects.select_related('user')
 
+        if query:
+            doctors = doctors.filter(
+                Q(user__full_name__icontains=query) |
+                Q(specialty__icontains=query) |
+                Q(hospital__icontains=query)
+            )
 
-
-
-
-
-
+        serializer = DoctorSerializer(doctors, many=True)
+        return Response(serializer.data)
