@@ -1,7 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseUserManager
 from django.conf import settings
-
+from django.utils import timezone
 
 class UserManager(BaseUserManager):
 
@@ -50,14 +50,18 @@ class User(AbstractBaseUser, PermissionsMixin):
     def __str__(self):
         return f"{self.full_name} ({self.role})"
 
+
 class Doctor(models.Model):
-    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='doctor_profile')
-    specialty = models.CharField(max_length=255)
-    description = models.TextField(blank=True, null=True)
-    phone_number = models.CharField(max_length=20, blank=True, null=True)
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='doctor_profile')
+    specialty = models.CharField(max_length=100)
+    hospital = models.CharField(max_length=100)
+    approved = models.BooleanField(default=False)
+
+    approval_date = models.DateTimeField(null=True, blank=True)
+    rejection_reason = models.TextField(null=True, blank=True)
 
     def __str__(self):
-        return f"Dr. {self.user.full_name} - {self.specialty}"
+        return self.user.full_name
 
 
 class Patient(models.Model):
@@ -65,6 +69,9 @@ class Patient(models.Model):
     age = models.PositiveIntegerField(blank=True, null=True)
     gender = models.CharField(max_length=10, choices=(('male', 'Male'), ('female', 'Female')), blank=True, null=True)
     phone_number = models.CharField(max_length=20, blank=True, null=True)
+    is_checked_in = models.BooleanField(default=False)
+    check_in_time = models.DateTimeField(null=True, blank=True)
+    check_out_time = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         return f"{self.user.full_name} (Patient)"

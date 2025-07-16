@@ -18,6 +18,8 @@ class Appointment(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     notes = models.TextField(blank=True, null=True)
+    fee = models.DecimalField(max_digits=10, decimal_places=0, default=500000)  # به تومان یا ریال
+    is_paid = models.BooleanField(default=False)
 
     class Meta:
         unique_together = ('doctor', 'date', 'time')
@@ -26,10 +28,35 @@ class Appointment(models.Model):
         return f"{self.patient.user.full_name} - {self.doctor.user.full_name} ({self.date} {self.time})"
 
 
-class AvailabelSlot(models.Model):
+class AvailableSlot(models.Model):
     doctor = models.ForeignKey(Doctor, on_delete=models.CASCADE, related_name='available_slots')
     date = models.DateField()
     start_time = models.TimeField()
     end_time = models.TimeField()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 

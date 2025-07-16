@@ -11,7 +11,16 @@ class DoctorSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Doctor
-        fields = ['id', 'user', 'specialty', 'description', 'phone_number']
+        fields = [
+            'id',
+            'user',
+            'specialty',
+            'hospital',
+            'approved',
+            'approval_date',
+            'rejection_reason',
+        ]
+        read_only_fields = ['approved', 'approval_date', 'rejection_reason']
 
 class PatientSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
