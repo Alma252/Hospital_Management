@@ -139,7 +139,3 @@ class PatientCheckOutView(APIView):
         patient.save()
 
         return Response({'detail': f'{patient.user.full_name} checked out successfully.'})
-
-
-
-

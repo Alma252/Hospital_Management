@@ -52,16 +52,18 @@ class User(AbstractBaseUser, PermissionsMixin):
 
 
 class Doctor(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='doctor_profile')
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    description = models.TextField(blank=True, null=True)
+    rejection_reason = models.TextField(blank=True, null=True)
+    medical_license_number = models.CharField(max_length=50, null=True, blank=True)  # شماره نظام پزشکی
+    photo = models.ImageField(upload_to='doctor_photos/', null=True, blank=True)  # عکس پزشک
     specialty = models.CharField(max_length=100)
     hospital = models.CharField(max_length=100)
     approved = models.BooleanField(default=False)
-
     approval_date = models.DateTimeField(null=True, blank=True)
-    rejection_reason = models.TextField(null=True, blank=True)
 
     def __str__(self):
-        return self.user.full_name
+        return f"{self.user.username} - {self.specialty}"
 
 
 class Patient(models.Model):
