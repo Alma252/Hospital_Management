@@ -63,7 +63,7 @@ class Doctor(models.Model):
     approval_date = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
-        return f"{self.user.username} - {self.specialty}"
+        return f"{self.user.full_name} - {self.specialty}"
 
 
 class Patient(models.Model):
