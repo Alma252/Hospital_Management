@@ -8,39 +8,49 @@ from django.utils import timezone
 from reportlab.pdfgen import canvas
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
+from users.models import Doctor
 
 
-# رزرو نوبت فقط توسط بیماران
+
 class CreateAppointmentView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
-        if request.user.role != 'patient':
-            return Response({'detail': 'Only patients can create appointments'}, status=status.HTTP_403_FORBIDDEN)
+        doctor_id = request.data.get('doctor')
+        date = request.data.get('date')
+        time = request.data.get('time')
 
-        data = request.data.copy()
-        doctor_id = data.get('doctor')
-        date = data.get('date')
-        time = data.get('time')
+        try:
+            patient = request.user.patient_profile
+        except Patient.DoesNotExist:
+            return Response({'detail': 'Only patients can create appointments'}, status=403)
 
-        # بررسی اینکه آیا این اسلات در AvailableSlot وجود دارد
-        slot_exists = AvailableSlot.objects.filter(
-            doctor_id=doctor_id,
+        patient = request.user.patient_profile
+        doctor = get_object_or_404(Doctor, id=doctor_id)
+
+        # بررسی اینکه زمان در بازه قابل قبول باشه
+        is_valid_time = AvailableSlot.objects.filter(
+            doctor=doctor,
             date=date,
             start_time__lte=time,
-            end_time__gt=time  # time باید در بازه‌ی زمان آزاد باشه
+            end_time__gt=time
         ).exists()
 
-        if not slot_exists:
-            return Response({'detail': 'This time is not available for the selected doctor.'}, status=status.HTTP_400_BAD_REQUEST)
+        if not is_valid_time:
+            return Response(
+                {"detail": "This time is not available for the selected doctor."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
-        data['patient'] = request.user.patient_profile.id
-        serializer = AppointmentSerializer(data=data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        # ایجاد نوبت
+        Appointment.objects.create(
+            doctor=doctor,
+            patient=patient,
+            date=date,
+            time=time
+        )
 
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"detail": "Appointment created successfully!"}, status=status.HTTP_201_CREATED)
 
 
 # لیست نوبت‌ها بر اساس نقش کاربر
@@ -266,19 +276,3 @@ class AppointmentInvoicePDFView(APIView):
         p.save()
 
         return response
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
