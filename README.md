@@ -68,6 +68,19 @@ python manage.py runserver
 
     Swagger / Redoc
 
+## TODO / Future Features ✨
+
+    Payment gateway integration
+
+    Email notifications on appointment confirmation
+
+    Doctor specialization filtering
+
+    Patient medical history & reports
+
+    Admin dashboard analytics
+
+
 
 ## 🤝 Contributing
 
