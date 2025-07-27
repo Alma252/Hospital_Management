@@ -235,7 +235,7 @@ class CompleteAppointmentView(APIView):
 class AppointmentInvoicePDFView(APIView):
     def get(self, request, appointment_id):
         appointment = get_object_or_404(
-            Appointment.objects.select_related('doctor__user', 'patient__user', 'insurance'),
+            Appointment.objects.select_related('doctor', 'patient', 'insurance_used'),
             pk=appointment_id
         )
 
@@ -246,43 +246,28 @@ class AppointmentInvoicePDFView(APIView):
         width, height = A4
         y = height - 50
 
-        # عنوان
         p.setFont("Helvetica-Bold", 18)
         p.drawString(220, y, "Invoice")
         y -= 40
 
-        # اطلاعات نوبت
         p.setFont("Helvetica", 12)
         p.drawString(50, y, f"Patient Name: {appointment.patient.user.full_name}")
         y -= 20
         p.drawString(50, y, f"Doctor Name: Dr. {appointment.doctor.user.full_name}")
         y -= 20
         p.drawString(50, y, f"Appointment Date: {appointment.date.strftime('%Y-%m-%d')} at {appointment.time}")
-        y -= 30
+        y -= 20
 
-        # محاسبه هزینه و تخفیف بیمه
         visit_fee = appointment.fee or 0
-        insurance = appointment.insurance
+        insurance_discount = appointment.insurance_used.discount_amount if appointment.insurance_used else 0
+        total_cost = visit_fee - insurance_discount
 
-        if insurance and insurance.coverage_percent:
-            discount = (visit_fee * insurance.coverage_percent) / 100
-            insurance_provider = insurance.provider
-        else:
-            discount = 0
-            insurance_provider = "None"
-
-        total_cost = visit_fee - discount
-
-        # رسم هزینه‌ها
-        p.drawString(50, y, f"Visit Fee: ${visit_fee:.2f}")
+        p.drawString(50, y, f"Visit Fee: ${visit_fee}")
         y -= 20
-        p.drawString(50, y, f"Insurance Provider: {insurance_provider}")
+        p.drawString(50, y, f"Insurance Discount: ${insurance_discount}")
         y -= 20
-        p.drawString(50, y, f"Insurance Discount: ${discount:.2f}")
-        y -= 20
-        p.drawString(50, y, f"Total Cost: ${total_cost:.2f}")
+        p.drawString(50, y, f"Total Cost: ${total_cost}")
 
         p.showPage()
         p.save()
-
         return response
