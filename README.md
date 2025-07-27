@@ -22,27 +22,28 @@ This project provides a robust RESTful API with **JWT Authentication**, Swagger/
 
 # Setup Instructions
 1. Clone the Repo
-git clone https://github.com/your-username/hospital-management-backend.git
+git clone https://github.com/Alma252/hospital-management-backend.git
+
 cd Hospital-Management
 
-2. Create Virtual Environment
+3. Create Virtual Environment
 python3 -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
-3. Install Dependencies
+4. Install Dependencies
 pip install django djangorestframework
 pip install djangorestframework-simplejwt
 pip install drf-yasg
 pip install django-cors-headers
 
-4. Run Migrations
+5. Run Migrations
 python manage.py makemigrations
 python manage.py migrate
 
-5. Create Superuser (for admin panel)
+6. Create Superuser (for admin panel)
 python manage.py createsuperuser
 
-6. Run Server
+7. Run Server
 python manage.py runserver
 
 # 💡 Notes
