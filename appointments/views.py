@@ -9,7 +9,8 @@ from reportlab.pdfgen import canvas
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from users.models import Doctor
-
+from decimal import Decimal
+from reportlab.lib.pagesizes import A4
 
 
 class CreateAppointmentView(APIView):
@@ -90,6 +91,9 @@ class UpdateAppointmentView(APIView):
         user = request.user
         if user.role not in ['doctor', 'admin']:
             return Response({'detail': 'You do not have permission to update appointments.'}, status=status.HTTP_403_FORBIDDEN)
+
+        if user.role == 'doctor' and appointment.doctor.user != user:
+            return Response({'detail': 'You can only update your own appointments.'}, status=status.HTTP_403_FORBIDDEN)
 
         serializer = AppointmentSerializer(appointment, data=request.data, partial=True)
         if serializer.is_valid():
@@ -196,7 +200,8 @@ class CreateAvailableSlotView(APIView):
             return Response({'detail': 'Only doctors can create available slots.'}, status=status.HTTP_403_FORBIDDEN)
 
         data = request.data.copy()
-        data['doctor'] = user.doctor_profile.id
+        doctor = get_object_or_404(Doctor, user=user)
+        data['doctor'] = doctor.id
 
         serializer = AvailableSlotSerializer(data=data)
         if serializer.is_valid():
@@ -227,50 +232,55 @@ class CompleteAppointmentView(APIView):
 
         return Response({'detail': 'Appointment marked as completed successfully.'}, status=status.HTTP_200_OK)
 
-
-# ویوی Invoice یا گزارش و فاکتور
 class AppointmentInvoicePDFView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
-
     def get(self, request, appointment_id):
-        try:
-            appointment = Appointment.objects.get(id=appointment_id)
-        except Appointment.DoesNotExist:
-            return Response({'detail': 'Appointment not found'}, status=status.HTTP_404_NOT_FOUND)
+        appointment = get_object_or_404(
+            Appointment.objects.select_related('doctor__user', 'patient__user', 'insurance'),
+            pk=appointment_id
+        )
 
-        user = request.user
-
-        if user.role == 'admin':
-            pass  # مجاز است
-        elif user.role == 'doctor' and hasattr(user, 'doctor_profile') and appointment.doctor == user.doctor_profile:
-            pass
-        elif user.role == 'patient' and hasattr(user, 'patient_profile') and appointment.patient == user.patient_profile:
-            pass
-        else:
-            return Response({'detail': 'Access denied'}, status=403)
-
-        # تولید فایل PDF در حافظه
         response = HttpResponse(content_type='application/pdf')
         response['Content-Disposition'] = f'inline; filename="invoice_{appointment.id}.pdf"'
 
-        p = canvas.Canvas(response)
-        p.setFont("Helvetica", 14)
-        p.drawString(100, 800, " فاکتور نوبت پزشکی")
+        p = canvas.Canvas(response, pagesize=A4)
+        width, height = A4
+        y = height - 50
 
+        # عنوان
+        p.setFont("Helvetica-Bold", 18)
+        p.drawString(220, y, "Invoice")
+        y -= 40
+
+        # اطلاعات نوبت
         p.setFont("Helvetica", 12)
-        p.drawString(100, 770, f"بیمار: {appointment.patient.user.full_name}")
-        p.drawString(100, 750, f"پزشک: {appointment.doctor.user.full_name}")
-        p.drawString(100, 730, f"تاریخ نوبت: {appointment.date}")
-        p.drawString(100, 710, f"ساعت: {appointment.time}")
-        p.drawString(100, 690, f"وضعیت نوبت: {appointment.status}")
+        p.drawString(50, y, f"Patient Name: {appointment.patient.user.full_name}")
+        y -= 20
+        p.drawString(50, y, f"Doctor Name: Dr. {appointment.doctor.user.full_name}")
+        y -= 20
+        p.drawString(50, y, f"Appointment Date: {appointment.date.strftime('%Y-%m-%d')} at {appointment.time}")
+        y -= 30
 
-        p.drawString(100, 660, f"مبلغ پایه: {appointment.fee} تومان")
-        tax = int(appointment.fee * 0.09)
-        total = appointment.fee + tax
-        p.drawString(100, 640, f"مالیات (۹٪): {tax} تومان")
-        p.drawString(100, 620, f"جمع کل: {total} تومان")
+        # محاسبه هزینه و تخفیف بیمه
+        visit_fee = appointment.fee or 0
+        insurance = appointment.insurance
 
-        p.drawString(100, 590, f"وضعیت پرداخت: {'پرداخت شده' if appointment.is_paid else 'پرداخت نشده'}")
+        if insurance and insurance.coverage_percent:
+            discount = (visit_fee * insurance.coverage_percent) / 100
+            insurance_provider = insurance.provider
+        else:
+            discount = 0
+            insurance_provider = "None"
+
+        total_cost = visit_fee - discount
+
+        # رسم هزینه‌ها
+        p.drawString(50, y, f"Visit Fee: ${visit_fee:.2f}")
+        y -= 20
+        p.drawString(50, y, f"Insurance Provider: {insurance_provider}")
+        y -= 20
+        p.drawString(50, y, f"Insurance Discount: ${discount:.2f}")
+        y -= 20
+        p.drawString(50, y, f"Total Cost: ${total_cost:.2f}")
 
         p.showPage()
         p.save()
