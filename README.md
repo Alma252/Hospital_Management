@@ -21,8 +21,7 @@ This project provides a robust RESTful API with **JWT Authentication**, Swagger/
   For full documentation, visit /swagger/ or /redoc
 
 # Setup Instructions
-1. Clone the Repo
-git clone https://github.com/Alma252/hospital-management-backend.git
+1. Clone the Repo git clone https://github.com/Alma252/hospital-management-backend.git
 2.cd Hospital-Management
 
 3. Create Virtual Environment
