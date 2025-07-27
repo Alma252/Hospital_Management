@@ -24,7 +24,7 @@ This project provides a robust RESTful API with **JWT Authentication**, Swagger/
 1. Clone the Repo
 git clone https://github.com/Alma252/hospital-management-backend.git
 
-2.cd Hospital-Management
+  2.cd Hospital-Management
 
 3. Create Virtual Environment
 python3 -m venv venv
